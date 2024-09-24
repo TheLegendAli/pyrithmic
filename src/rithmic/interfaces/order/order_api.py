@@ -20,7 +20,9 @@ from rithmic.protocol_buffers import (
     request_subscribe_for_order_updates_pb2, request_subscribe_to_bracket_updates_pb2, rithmic_order_notification_pb2,
     exchange_order_notification_pb2, response_bracket_order_pb2, response_new_order_pb2, request_new_order_pb2,
     request_bracket_order_pb2, request_cancel_order_pb2, request_update_stop_bracket_level_pb2,
-    request_modify_order_pb2, request_update_target_bracket_level_pb2,
+    request_modify_order_pb2, request_update_target_bracket_level_pb2, 
+    request_cancel_all_orders_pb2,
+    request_exit_position_pb2,
 )
 from rithmic.tools.general import dict_destructure, get_utc_now
 from rithmic.tools.meta import ApiType
@@ -186,7 +188,7 @@ class RithmicOrderApi(RithmicBaseApi):
             else:
                 accounts.append(record)
         return accounts
-
+    
     async def _list_trade_routes(self) -> list:
         """Returns list of trade routes configured for user"""
         rq = request_trade_routes_pb2.RequestTradeRoutes()
@@ -490,7 +492,8 @@ class RithmicOrderApi(RithmicBaseApi):
             self._send_market_order(order_id, security_code, exchange_code, quantity, is_buy), loop=self.loop
         )
         return market_order
-
+    
+    
     def submit_bracket_order(self, order_id: str, security_code: str, exchange_code: str, quantity: int, is_buy: bool,
                              limit_price: float, take_profit_ticks: int, stop_loss_ticks: int, ) -> BracketOrder:
         """
@@ -549,7 +552,36 @@ class RithmicOrderApi(RithmicBaseApi):
         rq.manual_or_auto = request_cancel_order_pb2.RequestCancelOrder.OrderPlacement.MANUAL
         buffer = self._convert_request_to_bytes(rq)
         await self.send_buffer(buffer)
-
+  
+    async def _send_cancel_all_orders(self) -> None:
+        """Create and send request to cancel all existing orders"""
+        rq = request_cancel_all_orders_pb2.RequestCancelAllOrders()
+        rq.template_id = 346
+        rq.user_msg.append('cancel_all_orders')
+        rq.fcm_id = self.fcm_id
+        rq.ib_id = self.ib_id
+        rq.account_id = self.primary_account_id
+        rq.user_type = request_cancel_all_orders_pb2.RequestCancelAllOrders.UserType.USER_TYPE_TRADER
+        rq.manual_or_auto = request_cancel_all_orders_pb2.RequestCancelAllOrders.OrderPlacement.MANUAL
+        buffer = self._convert_request_to_bytes(rq)
+        await self.send_buffer(buffer)
+    
+    
+    async def _send_exit_position(self, security_code: str, exchange_code: str,) -> None:
+        """Create and send request to exit a position"""
+        rq = request_exit_position_pb2.RequestExitPosition()
+        rq.template_id = 3504
+        rq.user_msg.append('exit_position')
+        rq.fcm_id = self.fcm_id
+        rq.ib_id = self.ib_id
+        rq.account_id = self.primary_account_id
+        rq.exchange = exchange_code
+        rq.symbol = security_code
+        rq.manual_or_auto = request_exit_position_pb2.RequestExitPosition.OrderPlacement.MANUAL
+        buffer = self._convert_request_to_bytes(rq)
+        await self.send_buffer(buffer)
+    
+    
     def _add_account_info_to_request(self, rq):
         rq.fcm_id = self.fcm_id
         rq.ib_id = self.ib_id
@@ -566,6 +598,16 @@ class RithmicOrderApi(RithmicBaseApi):
         order = self.get_order_by_order_id(order_id)
         asyncio.run_coroutine_threadsafe(self._send_cancel_order(order.basket_id), loop=self.loop)
 
+    
+    def submit_cancel_all_orders(self) -> None:
+        """
+        Submit a request to cancel all open orders
+
+        :return: None
+        """
+        asyncio.run_coroutine_threadsafe(self._send_cancel_all_orders(), loop=self.loop)
+    
+    
     def submit_cancel_bracket_order_all_children(self, order_id: str) -> None:
         """
         Submit cancellations for all children of a bracket order
@@ -576,6 +618,16 @@ class RithmicOrderApi(RithmicBaseApi):
         parent_order = self.get_order_by_order_id(order_id)
         for order in parent_order.stop_loss_orders:
             asyncio.run_coroutine_threadsafe(self._send_cancel_order(order.basket_id), loop=self.loop)
+    
+    def submit_exit_position(self, security_code: str, exchange_code: str) -> None:
+        """
+        Submit a request to exit a position
+
+        :param security_code: (str) valid security code
+        :param exchange_code: (str) valid exchange code
+        :return: None
+        """
+        asyncio.run_coroutine_threadsafe(self._send_exit_position(security_code, exchange_code), loop=self.loop)
 
     async def _send_bracket_order_stop_amendment(self, basket_id: str, old_stop_ticks: int,
                                                  new_stop_ticks: int) -> None:

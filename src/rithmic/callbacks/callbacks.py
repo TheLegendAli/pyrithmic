@@ -12,6 +12,12 @@ class CallbackId(enum.Enum):
     # Callback for Periodic Syncing in TICKER plant, arguments are a pandas DataFrame containing latest tick data
     # and the security and exchange codes for the latest data
 
+    INSTRUMENT_PNL = 450
+    # Callback to process notification that stream from Rithmin in PNL plant
+    
+    ACCOUNT_PNL = 451
+    #Callback to process notification that stream from Rithmin in PNL plant
+
     ORDER_RITHMIC_NOTIFICATIONS = 351
     # Callback to process notifications that stream from Rithmic in ORDER plant
 
