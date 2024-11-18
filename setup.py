@@ -40,7 +40,7 @@ setuptools.setup(
     install_requires=[
         'numpy',
         'pandas',
-        'websockets',
+        'websockets==14.1',
         'protobuf==3.20.3',
     ],
     extras_require={
