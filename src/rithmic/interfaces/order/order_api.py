@@ -110,6 +110,14 @@ class RithmicOrderApi(RithmicBaseApi):
     def connect_and_login(self) -> None:
         """Connects, Logs in to Rithmic and subscribes to updates"""
         logged_in = super(RithmicOrderApi, self).connect_and_login()
+        logger.info("log-in info information")
+        logger.info(logged_in)
+        logger.info("\n")
+
+        print("log-in info")
+        print(logged_in)
+        print()
+
         future = asyncio.run_coroutine_threadsafe(self._get_login_info(), loop=self.loop)
         log_in_details = future.result()
         logger.info('Order API Extended Login Details => {0}'.format(log_in_details))
@@ -284,6 +292,7 @@ class RithmicOrderApi(RithmicBaseApi):
             try:
                 msg_buf = bytearray()
                 waiting_for_msg = True
+                print("hi1")
                 while waiting_for_msg:
                     try:
                         msg_buf = await asyncio.wait_for(self.recv_buffer(), timeout=5)
@@ -493,7 +502,6 @@ class RithmicOrderApi(RithmicBaseApi):
         )
         return market_order
     
-    
     def submit_bracket_order(self, order_id: str, security_code: str, exchange_code: str, quantity: int, is_buy: bool,
                              limit_price: float, take_profit_ticks: int, stop_loss_ticks: int, ) -> BracketOrder:
         """
@@ -565,8 +573,7 @@ class RithmicOrderApi(RithmicBaseApi):
         rq.manual_or_auto = request_cancel_all_orders_pb2.RequestCancelAllOrders.OrderPlacement.MANUAL
         buffer = self._convert_request_to_bytes(rq)
         await self.send_buffer(buffer)
-    
-    
+     
     async def _send_exit_position(self, security_code: str, exchange_code: str,) -> None:
         """Create and send request to exit a position"""
         rq = request_exit_position_pb2.RequestExitPosition()
@@ -580,7 +587,6 @@ class RithmicOrderApi(RithmicBaseApi):
         rq.manual_or_auto = request_exit_position_pb2.RequestExitPosition.OrderPlacement.MANUAL
         buffer = self._convert_request_to_bytes(rq)
         await self.send_buffer(buffer)
-    
     
     def _add_account_info_to_request(self, rq):
         rq.fcm_id = self.fcm_id
@@ -598,7 +604,6 @@ class RithmicOrderApi(RithmicBaseApi):
         order = self.get_order_by_order_id(order_id)
         asyncio.run_coroutine_threadsafe(self._send_cancel_order(order.basket_id), loop=self.loop)
 
-    
     def submit_cancel_all_orders(self) -> None:
         """
         Submit a request to cancel all open orders
@@ -606,7 +611,6 @@ class RithmicOrderApi(RithmicBaseApi):
         :return: None
         """
         asyncio.run_coroutine_threadsafe(self._send_cancel_all_orders(), loop=self.loop)
-    
     
     def submit_cancel_bracket_order_all_children(self, order_id: str) -> None:
         """
