@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import websockets
 from typing import Dict, Union
 
 from pandas import DataFrame
@@ -221,9 +222,11 @@ class RithmicTickerApi(RithmicBaseApi):
                     msg_buf = await asyncio.wait_for(self.recv_buffer(), timeout=5)
                     waiting_for_msg = False
                 except asyncio.TimeoutError:
-                    if self.ws.open:
-                        await self.send_heartbeat()
-                    else:
+                    try:
+                        # Send a ping to check if the connection is still alive
+                        await self.ws.ping()
+                    except websockets.ConnectionClosed:
+                        print("Connection is closed.")
                         logger.info("connection appears to be closed.  exiting consume()")
                         raise WebsocketClosedException('Websocket has closed')
             template_id = self.get_template_id_from_message_buffer(msg_buf)

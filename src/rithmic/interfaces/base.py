@@ -1,4 +1,5 @@
 import inspect
+import websockets
 from abc import ABCMeta
 import asyncio
 from asyncio import AbstractEventLoop
@@ -108,7 +109,7 @@ class RithmicBaseApi(metaclass=ABCMeta):
 
     @property
     def is_connected(self) -> bool:
-        return self.ws.open
+        return self.ws.ping()
 
     async def send_buffer(self, message: bytes):
         self.sent_messages.append(message)
@@ -222,7 +223,7 @@ class RithmicBaseApi(metaclass=ABCMeta):
         await self.ws.close(1000, "Closing Connection")
 
     def disconnect_and_logout(self):
-        if self.ws.open:
+        if self.ws.ping():
             logger.info('Logging Out of Rithmic')
             future = asyncio.run_coroutine_threadsafe(self.rithmic_logout(), loop=self.loop)
             logout = future.result()
