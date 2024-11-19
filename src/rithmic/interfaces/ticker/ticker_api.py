@@ -221,10 +221,10 @@ class RithmicTickerApi(RithmicBaseApi):
                     logger.debug('Waiting for msg...')
                     msg_buf = await asyncio.wait_for(self.recv_buffer(), timeout=5)
                     waiting_for_msg = False
-                except asyncio.TimeoutError:
+                except:
                     try:
                         # Send a ping to check if the connection is still alive
-                        await self.ws.ping()
+                        await self.send_heartbeat()
                     except websockets.ConnectionClosed:
                         print("Connection is closed.")
                         logger.info("connection appears to be closed.  exiting consume()")
